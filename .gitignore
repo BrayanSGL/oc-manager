@@ -1,0 +1,13 @@
+# Ignorar archivos de Excel
+*.xls
+*.xlsx
+*.xlsm
+*.xlsb
+*.xltx
+*.xltm
+*.xlt
+*.xla
+*.xlam
+*.xll
+*.xlw
+*.csv

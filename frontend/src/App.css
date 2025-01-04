@@ -1,0 +1,76 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+h1 {
+  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem auto;
+}
+
+thead th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: bold;
+  font-size: 1rem;
+  border-bottom: 2px solid #ddd;
+}
+
+tbody td {
+  padding: 0.8rem;
+  text-align: left;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #eee;
+}
+
+/* tr:hover td {
+  background-color: #f9f9f9;
+} */
+
+button {
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+button:hover {
+  background-color: #f1f1f1;
+  color: #000;
+}
+
+button:active {
+  background-color: #e0e0e0;
+}
+
+
+.filters {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.filters input,
+.filters select {
+  padding: 5px;
+  font-size: 14px;
+}
