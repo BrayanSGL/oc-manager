@@ -9,7 +9,8 @@ function App() {
   const [filteredOrdenes, setFilteredOrdenes] = useState([]);
   const [filters, setFilters] = useState({
     OrdenDeCompra: "",
-    Fecha: "",
+    FechaInicio: "",
+    FechaFin: "",
     Proveedor: "",
     Facturado: "",
   });
@@ -25,66 +26,34 @@ function App() {
       .catch((error) => console.error("Error al cargar las órdenes:", error));
   }, []);
 
-  // Marcar una orden como facturada o no
-  const toggleFacturado = (id, currentState) => {
-    if (currentState) {
-      // Si la orden está facturada, solicitamos la contraseña para desmarcarla
-      const password = prompt(
-        "Por favor, ingresa la contraseña para desmarcar:"
-      );
-      if (password === "STBETS") {
-        axios
-          .put(`${API_URL}/ordenes/${id}`, { facturado: !currentState })
-          .then(() => {
-            setOrdenes((prevOrdenes) =>
-              prevOrdenes.map((orden) =>
-                orden.ID === id ? { ...orden, facturado: !currentState } : orden
-              )
-            );
-          })
-          .catch((error) =>
-            console.error("Error al actualizar el estado de facturado:", error)
-          );
-      } else {
-        alert("Contraseña incorrecta. No se puede desmarcar.");
-      }
-    } else {
-      // Si la orden no está facturada, mostramos solo una confirmación para marcarla
-      const confirmacion = window.confirm(
-        "¿Estás seguro de marcar esta orden como facturada?"
-      );
-      if (confirmacion) {
-        axios
-          .put(`${API_URL}/ordenes/${id}`, { facturado: !currentState })
-          .then(() => {
-            setOrdenes((prevOrdenes) =>
-              prevOrdenes.map((orden) =>
-                orden.ID === id ? { ...orden, facturado: !currentState } : orden
-              )
-            );
-          })
-          .catch((error) =>
-            console.error("Error al actualizar el estado de facturado:", error)
-          );
-      }
-    }
-  };
-
   // Manejar cambios en los filtros
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prevFilters) => ({ ...prevFilters, [name]: value }));
   };
 
+  // Convertir fecha de formato DD/MM/YYYY a objeto Date
+  const parseDate = (dateString) => {
+    const [day, month, year] = dateString.split("/");
+    return new Date(year, month - 1, day);
+  };
+
   // Aplicar filtros
   useEffect(() => {
     const filtered = ordenes.filter((orden) => {
+      const fechaOrden = parseDate(orden.Fecha);
+      const fechaInicio = filters.FechaInicio
+        ? new Date(filters.FechaInicio)
+        : null;
+      const fechaFin = filters.FechaFin ? new Date(filters.FechaFin) : null;
+
       return (
         (filters.OrdenDeCompra === "" ||
           orden.OrdenDeCompra.toLowerCase().includes(
             filters.OrdenDeCompra.toLowerCase()
           )) &&
-        (filters.Fecha === "" || orden.Fecha.includes(filters.Fecha)) &&
+        (!fechaInicio || fechaOrden >= fechaInicio) &&
+        (!fechaFin || fechaOrden <= fechaFin) &&
         (filters.Proveedor === "" ||
           orden.Proveedor.toLowerCase().includes(
             filters.Proveedor.toLowerCase()
@@ -96,6 +65,40 @@ function App() {
     });
     setFilteredOrdenes(filtered);
   }, [filters, ordenes]);
+
+  // Generar reporte (exportar a CSV)
+  const generateReport = () => {
+    const csvData = [
+      [
+        "ID",
+        "Fecha",
+        "Orden de Compra",
+        "Proveedor",
+        "Valor Neto",
+        "Facturado",
+      ],
+      ...filteredOrdenes.map((orden) => [
+        orden.ID,
+        orden.Fecha,
+        orden.OrdenDeCompra,
+        orden.Proveedor,
+        orden.ValorNeto,
+        orden.facturado ? "Sí" : "No",
+      ]),
+    ];
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      csvData.map((row) => row.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "reporte_ordenes.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div>
@@ -111,10 +114,17 @@ function App() {
           onChange={handleFilterChange}
         />
         <input
-          type="text"
-          name="Fecha"
-          placeholder="Fecha (YYYY-MM-DD)"
-          value={filters.Fecha}
+          type="date"
+          name="FechaInicio"
+          placeholder="Fecha Inicio"
+          value={filters.FechaInicio}
+          onChange={handleFilterChange}
+        />
+        <input
+          type="date"
+          name="FechaFin"
+          placeholder="Fecha Fin"
+          value={filters.FechaFin}
           onChange={handleFilterChange}
         />
         <input
@@ -133,6 +143,7 @@ function App() {
           <option value="Sí">Facturados</option>
           <option value="No">Sin facturar</option>
         </select>
+        <button onClick={generateReport}>Generar Reporte</button>
       </div>
 
       {/* Tabla */}
@@ -159,7 +170,62 @@ function App() {
               <td>{orden.facturado ? "Sí" : "No"}</td>
               <td>
                 <button
-                  onClick={() => toggleFacturado(orden.ID, orden.facturado)}
+                  onClick={() => {
+                    if (orden.facturado) {
+                      const password = window.prompt(
+                        "Ingrese la contraseña para desmarcar:"
+                      );
+                      if (password === "STbest") {
+                        axios
+                          .put(`${API_URL}/ordenes/${orden.ID}`, {
+                            facturado: !orden.facturado,
+                          })
+                          .then(() =>
+                            setOrdenes((prevOrdenes) =>
+                              prevOrdenes.map((o) =>
+                                o.ID === orden.ID
+                                  ? { ...o, facturado: !o.facturado }
+                                  : o
+                              )
+                            )
+                          )
+                          .catch((error) =>
+                            console.error(
+                              "Error al actualizar la orden:",
+                              error
+                            )
+                          );
+                      } else {
+                        alert("Contraseña incorrecta");
+                      }
+                    } else {
+                      if (
+                        window.confirm(
+                          "¿Está seguro que desea marcar esta orden?"
+                        )
+                      ) {
+                        axios
+                          .put(`${API_URL}/ordenes/${orden.ID}`, {
+                            facturado: !orden.facturado,
+                          })
+                          .then(() =>
+                            setOrdenes((prevOrdenes) =>
+                              prevOrdenes.map((o) =>
+                                o.ID === orden.ID
+                                  ? { ...o, facturado: !o.facturado }
+                                  : o
+                              )
+                            )
+                          )
+                          .catch((error) =>
+                            console.error(
+                              "Error al actualizar la orden:",
+                              error
+                            )
+                          );
+                      }
+                    }
+                  }}
                 >
                   {orden.facturado ? "Desmarcar" : "Marcar"}
                 </button>
